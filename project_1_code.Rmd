@@ -68,106 +68,6 @@ print(missing_vals)
 
 
 }
-```
-
-
-
-Loading the data
-```{r message=FALSE, warning=FALSE}
-data = read_csv("/Users/dgrijalva/SMU/Classes/Spring2021/appliedStats/DavidGProject1/MSDS6372-Project1/data1.csv")
-```
-
-Basic Data Set Up
-
-```{r}
-data = data.frame(data)
-```
-
-```{r}
-# Display dataset summary
-data$Market.Category = trimws(data$Market.Category)
-data = data%>%mutate_if(is.character, as.factor)
-
-summary(data)
-```
-
-```{r}
-str(data)
-
-```
-```{r}
-## Drop car model NA
-missing_values(data, "Overall Data") 
-```
-```{r}
-data1 = data %>% filter( Market.Category== "N/A")
-data1
-```
-
-Train - test - validation split
-```{r}
-set.seed(5)
-fractionTraining   <- 0.80
-fractionValidation <- 0.10
-fractionTest       <- 0.10
-
-# Compute sample sizes.
-sampleSizeTraining   <- floor(fractionTraining   * nrow(data))
-sampleSizeValidation <- floor(fractionValidation * nrow(data))
-sampleSizeTest       <- floor(fractionTest       * nrow(data))
-
-# Create the randomly-sampled indices for the dataframe. Use setdiff() to
-# avoid overlapping subsets of indices.
-indicesTraining    <- sort(sample(seq_len(nrow(data)), size=sampleSizeTraining))
-indicesNotTraining <- setdiff(seq_len(nrow(data)), indicesTraining)
-indicesValidation  <- sort(sample(indicesNotTraining, size=sampleSizeValidation))
-indicesTest        <- setdiff(indicesNotTraining, indicesValidation)
-
-# Finally, output the three dataframes for training, validation and test.
-dfTraining   <- data[indicesTraining, ]
-dfValidation <- data[indicesValidation, ]
-dfTest       <- data[indicesTest, ]
-
-```
-
-
-## To avoid data leakage we will treat missing values per dataset separetely. All of the fill in values will come from the training dataset.  
-Good read: https://machinelearningmastery.com/data-leakage-machine-learning/
-
-
-```{r}
-missing_values(dfTraining, "Training Data")
-```
-
-
-
-```{r}
-missing_values(dfTest, "Test Data")
-```
-
-```{r}
-missing_values(dfValidation, "Validation Data")
-```
-```{r}
-# Mode Function
-Mode <- function(x) {
-  ux <- unique(x)
-  return(ux[which.max(tabulate(match(x, ux)))])
-}
-
-# Find the mode for training dataset - the mode is NA
-Mode(dfTraining$Market.Category)
-Mode(dfTraining$Transmission.Type)
-Mode(dfTraining$Engine.Fuel.Type)
-
-# Since the mode is NA find the second most frequent used value = Crossover
-dfTraining %>% group_by(Market.Category) %>% summarize(count=n())
-```
-
-```{r}
-
-
-
 
 mode_per_category = function(data){
   
@@ -189,9 +89,6 @@ for (i in unique(data$Make) ){
     
   }
   car_brand[i] = i
-  
-  
-  
   
 }
 
@@ -215,37 +112,104 @@ return(impute_d)
   
 }
 
+his_func = function (data, x){
+  # Histogram function
+  plot = data %>% ggplot(aes(.data[[x]]))  + geom_histogram(stat="count", bins=15, fill="steelblue") + theme_clean() + labs( title=x) + theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
+  return(plot)
+}
+
+# Mode Function
+Mode <- function(x) {
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x, ux)))])
+}
+
 ```
 
+Loading the data
+```{r message=FALSE, warning=FALSE}
+data = read_csv("/Users/dgrijalva/SMU/Classes/Spring2021/appliedStats/DavidGProject1/MSDS6372-Project1/data1.csv")
+```
+#2,065,902
+Basic Data Set Up
+```{r}
+data = data.frame(data)
+```
+
+```{r}
+# Display dataset summary
+data$Market.Category = trimws(data$Market.Category)
+data = data%>%mutate_if(is.character, as.factor)
+
+summary(data)
+```
+
+```{r}
+str(data)
+
+```
+```{r}
+## Drop car model NA
+missing_values(data, "Overall Data") 
+```
+Train - test - validation split
+```{r}
+set.seed(5)
+fractionTraining   <- 0.80
+fractionValidation <- 0.10
+fractionTest       <- 0.10
+# Compute sample sizes.
+sampleSizeTraining   = floor(fractionTraining   * nrow(data))
+sampleSizeValidation = floor(fractionValidation * nrow(data))
+sampleSizeTest       = floor(fractionTest       * nrow(data))
+# Create the randomly-sampled indices for the dataframe. Use setdiff() to avoid overlapping subsets of indices.
+indicesTraining    = sort(sample(seq_len(nrow(data)), size=sampleSizeTraining))
+indicesNotTraining = setdiff(seq_len(nrow(data)), indicesTraining)
+indicesValidation  = sort(sample(indicesNotTraining, size=sampleSizeValidation))
+indicesTest        = setdiff(indicesNotTraining, indicesValidation)
+# Finally, output the three dataframes for training, validation and test.
+dfTraining   = data[indicesTraining, ]
+dfValidation = data[indicesValidation, ]
+dfTest = data[indicesTest, ]
+```
+
+
+## To avoid data leakage we will treat missing values per dataset separetely. All of the fill in values will come from the training dataset.  
+Good read: https://machinelearningmastery.com/data-leakage-machine-learning/
+
+```{r}
+missing_values(dfTraining, "Training Data")
+```
+
+```{r}
+missing_values(dfTest, "Test Data")
+```
+
+```{r}
+missing_values(dfValidation, "Validation Data")
+```
+```{r}
+# Find the mode for training dataset - the mode is NA
+Mode(dfTraining$Market.Category)
+Mode(dfTraining$Transmission.Type)
+Mode(dfTraining$Engine.Fuel.Type)
+# Since the mode is NA find the second most frequent used value = Crossover
+dfTraining %>% group_by(Market.Category) %>% summarize(count=n())
+```
 
 ```{r}
 # Get training data mode per category
 dfTraining_mode_per_category = mode_per_category(dfTraining)
-dfTraining_mode_per_category
 ```
 
 ```{r}
-
 dfTraining_imputed = merge_impute(dfTraining, dfTraining_mode_per_category)
-dfTraining_imputed
-
 ```
 ```{r}
 missing_values(dfTraining_imputed, "Traning Data")
 ```
 
 ```{r}
-
-
-
-his_func = function (data, x){
-  # Histogram function
-  plot = data %>% ggplot(aes(.data[[x]]))  + geom_histogram(stat="count", bins=15, fill="steelblue") + theme_clean() + labs( title=x) + theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
-  return(plot)
-  
-  
-}
-
 # Plot training distributions of variables with NA
 for (i in names(dfTraining_imputed %>% select(Engine.Cylinders, Engine.Fuel.Type, Engine.HP, Number.of.Doors))){
   print(his_func(data=dfTraining_imputed, i))
@@ -259,16 +223,14 @@ engine.cylinders.mean =  mean(dfTraining_imputed$Engine.Cylinders, na.rm = TRUE)
 engine.hp.mean =  mean(dfTraining_imputed$Engine.HP, na.rm = TRUE)
 number.of.doors = mean(dfTraining_imputed$Number.of.Doors, na.rm = TRUE)
 ```
+
 ```{r}
 # Fill NA of categorical variable with the Mode regular_unleaded and AUTOMATIC
 dfTraining_imputed$Engine.Fuel.Type = dfTraining_imputed$Engine.Fuel.Type %>% replace_na("regular unleaded")
-
-dfTraining_imputed$Transmission.Type = dfTraining_imputed$Transmission.Type %>% replace_na("AUTOMATIC")
-
+dfTraining_imputed$Transmission.Type  = str_replace_all(dfTraining_imputed$Transmission.Type, "UNKNOWN", "AUTOMATIC")
+dfTraining_imputed$Transmission.Type = as.factor(dfTraining_imputed$Transmission.Type)
 dfTraining_imputed$Engine.Cylinders = dfTraining_imputed$Engine.Cylinders %>% replace_na(engine.cylinders.mean)
-
 dfTraining_imputed$Engine.HP = dfTraining_imputed$Engine.HP  %>% replace_na(engine.hp.mean)
-
 dfTraining_imputed$Number.of.Doors = dfTraining_imputed$Number.of.Doors %>% replace_na(number.of.doors)
 ```
 
@@ -283,14 +245,12 @@ We can see the distributions didn't change when we fill the missing values
 
 # fill na values for test set
 ```{r}
-
 # View missing values
 missing_values(dfTest, "Test Data")
 
 for (i in names(dfTest %>% select(Engine.Cylinders, Engine.HP, Number.of.Doors))){
   print(his_func(data=dfTest, i))
 }
-
 ```
 
 ```{r}
@@ -298,15 +258,11 @@ for (i in names(dfTest %>% select(Engine.Cylinders, Engine.HP, Number.of.Doors))
 
 dfTest_imputed = merge_impute(dfTest, dfTraining_mode_per_category)
 # Fill NA of categorical variable with the Mode of Fuel.Type =  automatic
-
-dfTest_imputed$Engine.Fuel.Type = dfTest_imputed$Engine.Fuel.Type %>% replace_na("AUTOMATIC")
-
+dfTest_imputed$Transmission.Type  = str_replace_all(dfTest_imputed$Transmission.Type, "UNKNOWN", "AUTOMATIC")
+dfTest_imputed$Transmission.Type = as.factor(dfTest_imputed$Transmission.Type)
 dfTest_imputed$Engine.Cylinders = dfTest_imputed$Engine.Cylinders %>% replace_na(engine.cylinders.mean)
-
 dfTest_imputed$Engine.HP = dfTest_imputed$Engine.HP  %>% replace_na(engine.hp.mean)
-
 dfTest_imputed$Number.of.Doors = dfTest_imputed$Number.of.Doors %>% replace_na(number.of.doors)
-
 ```
 
 ```{r}
@@ -318,32 +274,22 @@ for (i in names(dfTest_imputed %>% select(Engine.Cylinders, Engine.HP, Number.of
 
 ```
 
-
 # fill na values for validation set
 ```{r}
-
 # View missing values
 missing_values(dfValidation, "Validation Data")
-
 for (i in names(dfValidation %>% select(Engine.HP))){
   print(his_func(data=dfValidation, i))
 }
-
 ```
 
 ```{r}
 # Impute missing values for market category using training data values 
-
 dfValidation_imputed = merge_impute(dfValidation, dfTraining_mode_per_category)
 # Fill NA of categorical variable with the Mode  Engine.Fuel.Type=AUTOMATIC
-dfValidation_imputed$Engine.Fuel.Type = dfValidation_imputed$Engine.Fuel.Type %>% replace_na("AUTOMATIC")
-
-
-
+dfValidation_imputed$Transmission.Type  = str_replace_all(dfValidation_imputed$Transmission.Type, "UNKNOWN", "AUTOMATIC")
+dfValidation_imputed$Transmission.Type = as.factor(dfValidation_imputed$Transmission.Type)
 dfValidation_imputed$Engine.HP = dfValidation_imputed$Engine.HP  %>% replace_na(engine.hp.mean)
-
-
-
 ```
 
 ```{r}
@@ -352,15 +298,12 @@ sum(is.na(dfValidation_imputed))
 for (i in names(dfValidation_imputed %>% select(Engine.HP))){
   print(his_func(data=dfValidation_imputed, i))
 }
-
 ```
 
-
-
-
-
-
-
+```{r}
+#summary(dfValidation_imputed)
+#write_csv(dfValidation_imputed, "dfValidation_imputed.csv", col_names=T)
+```
 Objective 1 Explanatory 
 Build a simple multiple regression model with the pourpose of explaining the relations with the popularity variable 
 
@@ -369,20 +312,43 @@ summary(dfTraining_imputed)
 ```
 
 ```{r}
-for (i in names(dfTraining_imputed %>% select_if(is.factor))){
-  if (i != "Model") {
-    print(i)
-    print(t(aggregate(MSRP~ dfTraining_imputed[[i]],data=dfTraining_imputed,summary)))
-    
-  }
-  
-}
+dfTraining_imputed1 = dfTraining_imputed %>% filter(!MSRP>=200000)
+dfTest_imputed1 = dfTest_imputed %>% filter(!MSRP>=200000)
+dfValidation_imputed1 = dfValidation_imputed %>% filter(!MSRP>=200000)
+
+
+
+
+
+dfTraining_imputed1 = dfTraining_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
+dfTest_imputed1 = dfTest_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
+dfValidation_imputed1 = dfValidation_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
 
 
 ```
 
-```{r message=FALSE, warning=FALSE}
 
+```{r}
+
+dfTraining_imputed1 %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
+dfTraining_imputed %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
+```
+
+
+#```{r}
+# for (i in names(dfTraining_imputed %>% select_if(is.factor))){
+#   if (i != "Model") {
+#     print(i)
+#     print(t(aggregate(MSRP~ dfTraining_imputed[[i]],data=dfTraining_imputed,summary)))
+#   }
+# }
+# ```
+
+
+```{r message=FALSE, warning=FALSE}
 factor_plot = function(data, x, y) {
   figure = data %>% ggplot(aes(.[[x]], .[[y]])) + geom_boxplot() + xlab(x) + ylab(y) + theme_clean() +
   theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
@@ -401,24 +367,23 @@ for (i in names(dfTraining_imputed %>% select_if(is.factor))){
 for (i in names(dfTraining_imputed %>% select_if(is.numeric))){
     print(numeric_plot(data=dfTraining, i, "MSRP"))
 }
-
-
 ```
-There seem to be some very expensive cars ( $ >=500,000). Let's investigate this a little. 
+There seem to be some very expensive cars ( $ >=200,000). Let's investigate this a little. 
 
 ```{r}
-expensive_cars = dfTraining_imputed %>% filter(MSRP >= 500000) 
-none_expensive_cars = dfTraining_imputed %>% filter(MSRP < 500000) 
+expensive_cars = dfTraining_imputed %>% filter(MSRP >= 200000) 
+none_expensive_cars = dfTraining_imputed %>% filter(MSRP < 200000) 
 ```
 
 ```{r}
-expensive_cars = dfTraining_imputed %>% filter(MSRP >= 500000) 
+expensive_cars = dfTraining_imputed %>% filter(MSRP >= 200000) 
 expensive_cars %>% ggplot(aes(Make)) + geom_bar()  + theme_clean() +
   theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
 
 none_expensive_cars %>% ggplot(aes(Make)) + geom_bar()  + theme_clean() +
   theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
 ```
+
 ```{r}
 expensive_cars %>% 
   group_by(Make) %>% 
@@ -427,8 +392,11 @@ expensive_cars %>%
             Mean_Popularity = mean(Popularity),
             SD_Popularity = sd(Popularity),
             Count = n())
-
 ```
+```{r}
+median(none_expensive_cars$MSRP)
+```
+
 ```{r}
 none_expensive_cars %>% 
   group_by(Make) %>% 
@@ -437,12 +405,26 @@ none_expensive_cars %>%
             Mean_Popularity = mean(Popularity),
             SD_Popularity = sd(Popularity),
             Count = n())
-
 ```
 
 ```{r}
-data_expensive_cars = dfTraining_imputed %>% filter(MSRP >= 500000)
+summary(dfTraining_imputed)
+
+```
+
+
+
+```{r}
+data_expensive_cars = dfTraining_imputed %>% filter(MSRP >= 200000)
 nrow(data_expensive_cars) / nrow(dfTraining_imputed)
+```
+
+```{r}
+dfTraining_imputed %>% ggplot() + geom_histogram(aes(MSRP),  fill="steelblue") + ggtitle("MSRP Distribution including MSRP greater than $200,000")
+
+```
+```{r}
+dfTraining_imputed1 %>% ggplot() + geom_histogram(aes(MSRP), fill="steelblue") + ggtitle("MSRP Distribution excluding MSRP greater than $200,000")
 ```
 ```{r}
 # Overall
@@ -458,24 +440,44 @@ dfTraining_imputed %>%
 
 
 
+
+
+
+```{r}
+names(dfTraining_imputed1)
+dfTraining_imputed1
+
+ggplot(dfTraining_imputed1, aes(highway.MPG)) +
+  geom_density(aes(fill=Make), alpha = 0.8) +
+  labs(title= "Highway MPG Densityby Make",
+       subtitle="Highway MPG by Make",
+       x="Highway MPG     ",
+       y="Density")
+```
+```{r}
+#install.packages("psych")
+library(psych)
+pairs.panels(dfTraining_imputed1 %>% select_if(is.numeric))
+```
+```{r}
+
+cor(dfTraining_imputed1 %>% select_if(is.numeric))
+```
+```{r}
+
+names(dfTraining_imputed1)
+```
+
 ## Build an Interpretable   
-
-Full model
 ```{r}
-model = lm(MSRP~.,data=dfTraining_imputed)
-```
-
-```{r}
-plot(model)
+contrasts(dfTraining_imputed1$Transmission.Type)
 
 ```
-# Suggestion: get rid of cars that cost more than 500K
-
 
 Feature Selection
 ```{r}
-nvmax=10
-reg_fwd=regsubsets(MSRP~.-Model-Make,data=dfTraining_imputed,method="seqrep", nvmax=nvmax)
+nvmax=15
+reg_fwd=regsubsets(MSRP~.-Model-Market.Category-Make,data=dfTraining_imputed1,method="seqrep", nvmax=nvmax)
 
 ```
 
@@ -486,12 +488,14 @@ cbind(CP=summary(reg_fwd)$cp,
       BIC=summary(reg_fwd)$bic,
       RSS = summary(reg_fwd)$rss)
 ```
+
 ```{r}
 par(mfrow=c(2,2))
-bics<-summary(reg_fwd)$cp
-plot(1:(nvmax),bics,type="l",ylab="CP",xlab="# of predictors")
-index<-which(bics==min(bics))
-points(index,bics[index],col="red",pch=10)
+
+cp<-summary(reg_fwd)$cp
+plot(1:(nvmax),cp,type="l",ylab="CP",xlab="# of predictors")
+index<-which(cp==min(cp))
+points(index,cp[index],col="red",pch=10)
 
 bics<-summary(reg_fwd)$bic
 plot(1:(nvmax),bics,type="l",ylab="BIC",xlab="# of predictors")
@@ -509,66 +513,149 @@ index<-which(rss==min(rss))
 points(index,rss[index],col="red",pch=10)
 
 ```
+```{r}
+coef(reg_fwd, nvmax)
+```
+```{r}
+contrasts(dfTraining_imputed1$Transmission.Type)
+```
 
 ```{r}
-coef(reg_fwd,nvmax)
-```
-```{r}
-names(dfTraining)
-```
-```{r}
-best_model = lm(MSRP~Engine.HP+Driven_Wheels+Popularity,city.mpg, highway.MPG, data=dfTraining_imputed)
+#Refferences 
+## Vehicle.Size - Compact
+## Driven_Wheels - all wheel drive
+## Transmission.Type - AUTOMATED_MANUAL
+names(dfTraining_imputed1)
+best_model = lm(MSRP~Engine.HP+Popularity+city.mpg+Number.of.Doors
+              +Year  + Driven_Wheels + Vehicle.Size + Transmission.Type
+  , data=dfTraining_imputed1)
 summary(best_model)
 ```
 
+```{r}
+ols_plot_diagnostics(best_model)
 
-```{r,echo=T}
-  library(glmnet)
-#Formatting data for GLM net
-x=model.matrix(MSRP~.,dfTraining_imputed)[,-1]
-y=log(dfTraining_imputed$MSRP)
-xtest<-model.matrix(MSRP~.,dfValidation_imputed)[,-1]
-ytest<-log(dfTraining_imputed$MSRP)
+ols_press(best_model)
 
 
-grid=10^seq(10,-2, length =100)
-lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+#summary(best_model)
+confint(best_model,  level=0.995)
 
-cv.out=cv.glmnet(x,y,alpha=1) #alpha=1 performs LASSO
-plot(cv.out)
-bestlambda<-cv.out$lambda.min  #Optimal penalty parameter.  You can make this call visually.
-lasso.pred=predict (lasso.mod ,s=bestlambda ,newx=xtest)
 
-testMSE_LASSO<-mean((ytest-lasso.pred)^2)
+ols_plot_cooksd_bar(best_model)
+ols_plot_dffits(best_model)
+ols_plot_diagnostics(best_model)
+
+ols_plot_resid_fit(best_model)
+ols_plot_resid_pot(best_model)
+ols_pred_rsq(best_model)
+plot(best_model)
+```
+
+```{r}
+pred = best_model %>% predict(dfTest_imputed)
+RMSE(pred,dfTest_imputed$MSRP)
+```
+
+```{r, echo=T}
+#Really handy predict function
+predict.regsubsets =function (object , newdata ,id ,...){
+  form=as.formula (object$call [[2]])
+  mat=model.matrix(form ,newdata )
+  coefi=coef(object ,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+```
+
+```{r}
+options(scipen=999)
+```
+
+With the prediction function read in we can simply write a loop to predicted on each of the 20 models generated from the forward selection procedure and plot the ASE's.  I've included the training ASE for comparison.
+
+```{r}
+testASE<-c()
+#note my index is to 20 since that what I set it in regsubsets
+for (i in 1:14){
+  predictions<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=i) 
+  testASE[i]<-mean(((dfTest_imputed1$MSRP)-predictions)^2)
+}
+par(mfrow=c(1,1))
+plot(1:14,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE")
+index<-which(testASE==min(testASE))
+points(index,testASE[index],col="red",pch=10)
+rss<-summary(reg_fwd)$rss
+lines(1:15,rss/9305,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
+```
+```{r}
+# Best stepwise model
+pred = best_model %>% predict(dfTest_imputed)
+RMSE(pred,dfTest_imputed$MSRP)
+rss(pred,dfTest_imputed$MSRP)
+```
+
+```{r}
+names(dfTraining_imputed1 %>% select_if(is.factor))
+str(dfTraining_imputed1%>% select_if(is.factor))
+str(dfTest_imputed1%>% select_if(is.factor))
+```
+```{r}
+# Ensure all test set has the same training set factors
+dfTest_imputed1$Make = factor(dfTest_imputed1$Make, levels = levels(dfTraining_imputed1$Make))
+
+dfTest_imputed1$Model = factor(dfTest_imputed1$Model, levels = levels(dfTraining_imputed1$Model))
+
+dfTest_imputed1$Engine.Fuel.Type = factor(dfTest_imputed1$Engine.Fuel.Type, levels = levels(dfTraining_imputed1$Engine.Fuel.Type))
+
+dfTest_imputed1$Transmission.Type = factor(dfTest_imputed1$Transmission.Type, levels = levels(dfTraining_imputed1$Transmission.Type))
+
+dfTest_imputed1$Driven_Wheels = factor(dfTest_imputed1$Driven_Wheels, levels = levels(dfTraining_imputed1$Driven_Wheels))
+
+dfTest_imputed1$Vehicle.Size = factor(dfTest_imputed1$Vehicle.Size, levels = levels(dfTraining_imputed1$Vehicle.Size))
+
+dfTest_imputed1$Vehicle.Style = factor(dfTest_imputed1$Vehicle.Style, levels = levels(dfTraining_imputed1$Vehicle.Style))
+
+dfTest_imputed1$Market.Category = factor(dfTest_imputed1$Market.Category, levels = levels(dfTraining_imputed1$Market.Category))
+```
+```{r}
+
+
+```
+
+```{r}
+
+dfTest_imputed1
+```
+
+
+
+```{r}
+ library(glmnet)
+ #Formatting data for GLM net
+ x=model.matrix(MSRP~.-Model-Market.Category-Make,dfTraining_imputed1)[,-1]
+ y=dfTraining_imputed1$MSRP
+#
+ xtest=model.matrix(MSRP~.-Model-Market.Category-Make,dfTest_imputed1)[,-1]
+ ytest<-dfTest_imputed1$MSRP
+#
+#
+#
+ grid=10^seq(10,-2, length =1000)
+ lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+#
+ cv.out=cv.glmnet(x,y,alpha=1) #alpha=1 performs LASSO
+ plot(cv.out)
+ bestlambda<-cv.out$lambda.min  #Optimal penalty parameter.  You can make this call visually.
+ lasso.pred=predict (lasso.mod ,s=bestlambda ,newx=xtest)
+#
+
+```
+```{r}
+testMSE_LASSO=mean((ytest[1:1164]-lasso.pred)^2)
 testMSE_LASSO
- ```
+```
+
 ```{r}
 coef(lasso.mod,s=bestlambda)
-```
-
-
-Prediction Model
-Build the most predictive model. For this we will compare 3 different model types (a mixture of parametric and non parametric models)
-1) Multiple Linear Regression - Lasso
-2) K nearest Neighbors (KNN)
-3) Tree
-```{r}
-
-
-```
-
-Model 2 - Multiple Linear Regression
-```{r}
-
-
-```
-
-Model 3 - KNN
-```{r}
-
-```
-
-Model 4 - Tree
-```{r}
-
 ```
