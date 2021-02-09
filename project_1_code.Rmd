@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load Libraries
 ```{r message=FALSE, warning=FALSE}
 
-library(missForest)
+
 library(mice)
 library(dplyr)
 library(tidyverse)
@@ -22,6 +22,8 @@ library(caret)
 require(ggthemes)
 library(leaps)
 library(olsrr)
+library(GGally)
+
 ```
 
 ```{r}
@@ -124,7 +126,22 @@ Mode <- function(x) {
   return(ux[which.max(tabulate(match(x, ux)))])
 }
 
+
+
+#Really handy predict function
+predict.regsubsets =function (object , newdata ,id ,...){
+  form=as.formula (object$call [[2]])
+  mat=model.matrix(form ,newdata )
+  coefi=coef(object ,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+
+
+options(scipen=999)
 ```
+
 
 Loading the data
 ```{r message=FALSE, warning=FALSE}
@@ -312,62 +329,18 @@ summary(dfTraining_imputed)
 ```
 
 ```{r}
-dfTraining_imputed1 = dfTraining_imputed %>% filter(!MSRP>=200000)
-dfTest_imputed1 = dfTest_imputed %>% filter(!MSRP>=200000)
-dfValidation_imputed1 = dfValidation_imputed %>% filter(!MSRP>=200000)
-
-
-
-
-
-dfTraining_imputed1 = dfTraining_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
-
-dfTest_imputed1 = dfTest_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
-
-dfValidation_imputed1 = dfValidation_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
-
-
+# Overall
+dfTraining_imputed %>% 
+  group_by(Make) %>% 
+  summarize(Mean_MSRP = mean(MSRP),
+            SD_MSRP = sd(MSRP),
+            Mean_Popularity = mean(Popularity),
+            SD_Popularity = sd(Popularity),
+            Count = n())
 
 ```
 
 
-```{r}
-
-dfTraining_imputed1 %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
-dfTraining_imputed %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
-```
-
-
-#```{r}
-# for (i in names(dfTraining_imputed %>% select_if(is.factor))){
-#   if (i != "Model") {
-#     print(i)
-#     print(t(aggregate(MSRP~ dfTraining_imputed[[i]],data=dfTraining_imputed,summary)))
-#   }
-# }
-# ```
-
-
-```{r message=FALSE, warning=FALSE}
-factor_plot = function(data, x, y) {
-  figure = data %>% ggplot(aes(.[[x]], .[[y]])) + geom_boxplot() + xlab(x) + ylab(y) + theme_clean() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
-  return (figure)}
-
-numeric_plot = function(data, x, y) {
-  figure = data %>% ggplot(aes(.[[x]], .[[y]])) +geom_point() + geom_smooth(method="lm", formula = 'y ~ x') + xlab(x) +ylab(y) + theme_clean() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
-  return (figure)}
-
-
-for (i in names(dfTraining_imputed %>% select_if(is.factor))){
-    print(factor_plot(data=dfTraining, i, "MSRP"))
-}
-
-for (i in names(dfTraining_imputed %>% select_if(is.numeric))){
-    print(numeric_plot(data=dfTraining, i, "MSRP"))
-}
-```
 There seem to be some very expensive cars ( $ >=200,000). Let's investigate this a little. 
 
 ```{r}
@@ -408,38 +381,86 @@ none_expensive_cars %>%
 ```
 
 ```{r}
-summary(dfTraining_imputed)
-
-```
-
-
-
-```{r}
 data_expensive_cars = dfTraining_imputed %>% filter(MSRP >= 200000)
 nrow(data_expensive_cars) / nrow(dfTraining_imputed)
 ```
 
 ```{r}
-dfTraining_imputed %>% ggplot() + geom_histogram(aes(MSRP),  fill="steelblue") + ggtitle("MSRP Distribution including MSRP greater than $200,000")
+dfTraining_imputed1 = dfTraining_imputed %>% filter(MSRP < 200000 & Year>2000) 
+dfTest_imputed1 = dfTest_imputed %>% filter(MSRP < 200000  & Year>2000)
+dfValidation_imputed1 = dfValidation_imputed %>% filter(MSRP < 200000  & Year>2000)
+
+
+
+
+
+dfTraining_imputed1 = dfTraining_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
+dfTest_imputed1 = dfTest_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
+dfValidation_imputed1 = dfValidation_imputed1 %>% select(Make,Model,Year,Engine.Fuel.Type,Engine.HP,Engine.Cylinders,Transmission.Type,Driven_Wheels,Number.of.Doors,Vehicle.Size,Vehicle.Style,highway.MPG,city.mpg,Popularity,Market.Category,MSRP)
+
+
+
+```
+
+```{r}
+dfTraining_imputed %>% ggplot() + geom_histogram(aes(MSRP),  fill="steelblue") + ggtitle("MSRP Distribution including MSRP greater than $200,000 and all Years")
 
 ```
 ```{r}
-dfTraining_imputed1 %>% ggplot() + geom_histogram(aes(MSRP), fill="steelblue") + ggtitle("MSRP Distribution excluding MSRP greater than $200,000")
+dfTraining_imputed1 %>% ggplot() + geom_histogram(aes(MSRP), fill="steelblue") + ggtitle("MSRP Distribution excluding MSRP greater than $200,000 and Year > 2000")
 ```
+
+
+
 ```{r}
-# Overall
-dfTraining_imputed %>% 
-  group_by(Make) %>% 
-  summarize(Mean_MSRP = mean(MSRP),
-            SD_MSRP = sd(MSRP),
-            Mean_Popularity = mean(Popularity),
-            SD_Popularity = sd(Popularity),
-            Count = n())
+summary(dfTraining_imputed1)
+hist(dfValidation_imputed1$MSRP)
+```
 
+```{r}
+
+dfTraining_imputed1 %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
+dfTraining_imputed %>% ggplot() + geom_boxplot(aes(x=MSRP), fill="steelblue")
 ```
 
 
+#```{r}
+# for (i in names(dfTraining_imputed %>% select_if(is.factor))){
+#   if (i != "Model") {
+#     print(i)
+#     print(t(aggregate(MSRP~ dfTraining_imputed[[i]],data=dfTraining_imputed,summary)))
+#   }
+# }
+# ```
 
+
+```{r message=FALSE, warning=FALSE}
+factor_plot = function(data, x, y) {
+  figure = data %>% ggplot(aes(.[[x]], .[[y]])) + geom_boxplot() + xlab(x) + ylab(y) + theme_clean() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
+  return (figure)}
+
+numeric_plot = function(data, x, y) {
+  figure = data %>% ggplot(aes(.[[x]], .[[y]])) +geom_point() + geom_smooth(method="lm", formula = 'y ~ x') + xlab(x) +ylab(y) + theme_clean() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6 )) 
+  return (figure)}
+
+
+for (i in names(dfTraining_imputed %>% select_if(is.factor))){
+    print(factor_plot(data=dfTraining, i, "MSRP"))
+}
+
+for (i in names(dfTraining_imputed %>% select_if(is.numeric))){
+    print(numeric_plot(data=dfTraining, i, "MSRP"))
+}
+```
+
+```{r}
+summary(dfTraining_imputed)
+
+```
 
 
 
@@ -468,18 +489,34 @@ cor(dfTraining_imputed1 %>% select_if(is.numeric))
 names(dfTraining_imputed1)
 ```
 
-## Build an Interpretable   
 ```{r}
-contrasts(dfTraining_imputed1$Transmission.Type)
+
+#Histogram distribution of the popularity of Cars by Make
+dfTraining_imputed %>% ggplot(aes(x = Popularity)) + geom_histogram(bins = 9) + facet_wrap(~Make)
+10:09
+#Plot matrix of only variables of interests for MSRP, Popularity and Driven_Wheels
+dfTraining_imputed %>% select(MSRP, Popularity, Driven_Wheels) %>% ggpairs(aes(color = Driven_Wheels))
+
 
 ```
+
+
+
+
+
+
+
+## Build an Interpretable   
+
 
 Feature Selection
 ```{r}
-nvmax=15
-reg_fwd=regsubsets(MSRP~.-Model-Market.Category-Make,data=dfTraining_imputed1,method="seqrep", nvmax=nvmax)
+m=11
+reg_fwd=regsubsets(log(MSRP)~.-Model-Market.Category-Make-Vehicle.Style,data=dfTraining_imputed1,method="seqrep", nvmax=m)
 
 ```
+
+
 
 ```{r}
 cbind(CP=summary(reg_fwd)$cp,
@@ -488,6 +525,8 @@ cbind(CP=summary(reg_fwd)$cp,
       BIC=summary(reg_fwd)$bic,
       RSS = summary(reg_fwd)$rss)
 ```
+
+
 
 ```{r}
 par(mfrow=c(2,2))
@@ -513,11 +552,36 @@ index<-which(rss==min(rss))
 points(index,rss[index],col="red",pch=10)
 
 ```
+
 ```{r}
-coef(reg_fwd, nvmax)
+coef(reg_fwd, m)
 ```
 ```{r}
-contrasts(dfTraining_imputed1$Transmission.Type)
+# predictions<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=11) 
+# predictions
+reg_fwd
+```
+
+
+```{r}
+testASE<-c()
+#note my index is to 11 since that what I set it in regsubsets
+for (i in 1:11){
+  predictions_testase<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=i) 
+  testASE[i]<-mean((log(dfTest_imputed1$MSRP[1:1004])-predictions_testase)^2)
+}
+par(mfrow=c(1,1))
+plot(1:11,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE", ylim=c(0.03,0.5))
+index<-which(testASE==min(testASE))
+points(index,testASE[index],col="red",pch=10)
+rss<-summary(reg_fwd)$rss
+lines(1:11,rss/7981,lty=3,col="blue")  
+```
+
+```{r}
+
+testASE
+      
 ```
 
 ```{r}
@@ -525,12 +589,15 @@ contrasts(dfTraining_imputed1$Transmission.Type)
 ## Vehicle.Size - Compact
 ## Driven_Wheels - all wheel drive
 ## Transmission.Type - AUTOMATED_MANUAL
-names(dfTraining_imputed1)
-best_model = lm(MSRP~Engine.HP+Popularity+city.mpg+Number.of.Doors
-              +Year  + Driven_Wheels + Vehicle.Size + Transmission.Type
+best_model = lm(log(MSRP)~ Engine.HP +Year  + Driven_Wheels + Vehicle.Size + Transmission.Type + Number.of.Doors
   , data=dfTraining_imputed1)
 summary(best_model)
 ```
+```{r}
+
+vif(best_model)
+```
+
 
 ```{r}
 ols_plot_diagnostics(best_model)
@@ -553,47 +620,30 @@ plot(best_model)
 ```
 
 ```{r}
+# Lets look at influencial points
+
+dfTraining_imputed1[6650,] # Price: 134500 Year 2016
+
+dfTraining_imputed1[6652,] # Price: 104500 Year 2014
+
+
+
+
+
+
+
+```
+
+```{r}
+summary(dfTraining_imputed1)
+```
+
+```{r}
 pred = best_model %>% predict(dfTest_imputed)
-RMSE(pred,dfTest_imputed$MSRP)
+RMSE(pred,(log(dfTest_imputed$MSRP)))
 ```
 
-```{r, echo=T}
-#Really handy predict function
-predict.regsubsets =function (object , newdata ,id ,...){
-  form=as.formula (object$call [[2]])
-  mat=model.matrix(form ,newdata )
-  coefi=coef(object ,id=id)
-  xvars=names(coefi)
-  mat[,xvars]%*%coefi
-}
-```
-
-```{r}
-options(scipen=999)
-```
-
-With the prediction function read in we can simply write a loop to predicted on each of the 20 models generated from the forward selection procedure and plot the ASE's.  I've included the training ASE for comparison.
-
-```{r}
-testASE<-c()
-#note my index is to 20 since that what I set it in regsubsets
-for (i in 1:14){
-  predictions<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=i) 
-  testASE[i]<-mean(((dfTest_imputed1$MSRP)-predictions)^2)
-}
-par(mfrow=c(1,1))
-plot(1:14,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE")
-index<-which(testASE==min(testASE))
-points(index,testASE[index],col="red",pch=10)
-rss<-summary(reg_fwd)$rss
-lines(1:15,rss/9305,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
-```
-```{r}
-# Best stepwise model
-pred = best_model %>% predict(dfTest_imputed)
-RMSE(pred,dfTest_imputed$MSRP)
-rss(pred,dfTest_imputed$MSRP)
-```
+# Prepare data for lasso model
 
 ```{r}
 names(dfTraining_imputed1 %>% select_if(is.factor))
@@ -617,15 +667,34 @@ dfTest_imputed1$Vehicle.Size = factor(dfTest_imputed1$Vehicle.Size, levels = lev
 dfTest_imputed1$Vehicle.Style = factor(dfTest_imputed1$Vehicle.Style, levels = levels(dfTraining_imputed1$Vehicle.Style))
 
 dfTest_imputed1$Market.Category = factor(dfTest_imputed1$Market.Category, levels = levels(dfTraining_imputed1$Market.Category))
+
+dfTest_imputed1 = dfTest_imputed1 %>% drop_na()
+
+
+
+
+
+dfValidation_imputed1$Make = factor(dfValidation_imputed1$Make, levels = levels(dfTraining_imputed1$Make))
+
+dfValidation_imputed1$Model = factor(dfValidation_imputed1$Model, levels = levels(dfTraining_imputed1$Model))
+
+dfValidation_imputed1$Engine.Fuel.Type = factor(dfValidation_imputed1$Engine.Fuel.Type, levels = levels(dfTraining_imputed1$Engine.Fuel.Type))
+
+dfValidation_imputed1$Transmission.Type = factor(dfValidation_imputed1$Transmission.Type, levels = levels(dfTraining_imputed1$Transmission.Type))
+
+dfValidation_imputed1$Driven_Wheels = factor(dfValidation_imputed1$Driven_Wheels, levels = levels(dfTraining_imputed1$Driven_Wheels))
+
+dfValidation_imputed1$Vehicle.Size = factor(dfValidation_imputed1$Vehicle.Size, levels = levels(dfTraining_imputed1$Vehicle.Size))
+
+dfValidation_imputed1$Vehicle.Style = factor(dfValidation_imputed1$Vehicle.Style, levels = levels(dfTraining_imputed1$Vehicle.Style))
+
+dfValidation_imputed1$Market.Category = factor(dfValidation_imputed1$Market.Category, levels = levels(dfTraining_imputed1$Market.Category))
+
+dfValidation_imputed1 = dfValidation_imputed1 %>% drop_na()
 ```
 ```{r}
 
 
-```
-
-```{r}
-
-dfTest_imputed1
 ```
 
 
@@ -633,11 +702,11 @@ dfTest_imputed1
 ```{r}
  library(glmnet)
  #Formatting data for GLM net
- x=model.matrix(MSRP~.-Model-Market.Category-Make,dfTraining_imputed1)[,-1]
- y=dfTraining_imputed1$MSRP
+ x=model.matrix(log(MSRP)~.-Model-Market.Category-Make,dfTraining_imputed1)[,-1]
+ y=log(dfTraining_imputed1$MSRP)
 #
- xtest=model.matrix(MSRP~.-Model-Market.Category-Make,dfTest_imputed1)[,-1]
- ytest<-dfTest_imputed1$MSRP
+ xtest=model.matrix(log(MSRP)~.-Model-Market.Category-Make,dfTest_imputed1)[,-1]
+ ytest<-log(dfTest_imputed1$MSRP)
 #
 #
 #
@@ -652,10 +721,103 @@ dfTest_imputed1
 
 ```
 ```{r}
-testMSE_LASSO=mean((ytest[1:1164]-lasso.pred)^2)
+testMSE_LASSO=mean((ytest[1:1004]-lasso.pred)^2)
 testMSE_LASSO
 ```
 
 ```{r}
-coef(lasso.mod,s=bestlambda)
+popularity =  lm(log(MSRP)~Popularity,data=dfTraining_imputed1)
+summary(popularity)
+```
+
+```{r}
+#coef(lasso.mod,s=bestlambda)
+```
+### OBJECTIVE 2
+## Complex regression
+
+```{r}
+names(dfTraining_imputed1 %>% select_if(is.numeric))
+```
+
+```{r}
+complex_model = lm((MSRP)~.,data=dfTraining_imputed1)
+```
+
+```{r}
+ library(glmnet)
+ #Formatting data for GLM net
+ x=model.matrix(log(MSRP)~.-Model+poly(Engine.HP,2)+poly(Engine.Cylinders,2),dfTraining_imputed1)[,-1]
+ y=log(dfTraining_imputed1$MSRP)
+#
+ xtest=model.matrix(log(MSRP)~.-Model+poly(Engine.HP,2)+poly(Engine.Cylinders,2), dfTest_imputed1)[,-1]
+ ytest<-log(dfTest_imputed1$MSRP)
+#
+#
+#
+ grid=10^seq(10,-2, length =900)
+ obj2_lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+#
+ cv.out=cv.glmnet(x,y,alpha=1) #alpha=1 performs LASSO
+ plot(cv.out)
+ bestlambda<-cv.out$lambda.min  #Optimal penalty parameter.  You can make this call visually.
+ lasso.pred=predict (obj2_lasso.mod ,s=bestlambda ,newx=xtest)
+#
+
+```
+```{r}
+
+
+testMSE_LASSO_complex=mean((ytest[1:1004]-lasso.pred)^2)
+testMSE_LASSO_complex
+```
+```{r}
+ xval=model.matrix(log(MSRP)~.-Model+poly(Engine.HP,2)+poly(Engine.Cylinders,2), dfValidation_imputed1)[,-1]
+ yval<-log(dfValidation_imputed1$MSRP)
+lasso.pred_val=predict(obj2_lasso.mod ,s=bestlambda ,newx=xval)
+
+#
+ testMSE_LASSO<-mean((yval[1:985]-lasso.pred_val)^2)
+ testMSE_LASSO
+```
+```{r}
+nrow(dfValidation_imputed1)
+length(xval)
+length(yval)
+```
+
+
+```{r}
+library(caret)
+
+```
+
+```{r}
+# Define the training control
+fitControl <- trainControl(
+    method = 'cv',                   # k-fold cross validation
+    number = 10,                      # number of folds
+    savePredictions = 'final',       # saves predictions for optimal tuning parameter
+) 
+rpart_fit = train(log(MSRP) ~ ., data=dfTraining_imputed1, "rpart", trControl = fitControl)
+```
+```{r}
+rpart_fit
+```
+
+```{r}
+print(rpart_fit)
+
+```
+
+```{r}
+rpartPred <- predict(rpart_fit, dfTest_imputed1)
+postResample(pred = rpartPred, obs = log(dfTest_imputed1$MSRP))
+```
+
+
+```{r}
+
+rpartPred <- predict(rpart_fit, dfValidation_imputed1)
+postResample(pred = rpartPred, obs = log(dfValidation_imputed1$MSRP))
 ```
