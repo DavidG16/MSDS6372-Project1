@@ -566,16 +566,16 @@ reg_fwd
 ```{r}
 testASE<-c()
 #note my index is to 11 since that what I set it in regsubsets
-for (i in 1:11){
-  predictions_testase<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=i) 
-  testASE[i]<-mean((log(dfTest_imputed1$MSRP[1:1004])-predictions_testase)^2)
-}
-par(mfrow=c(1,1))
-plot(1:11,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE", ylim=c(0.03,0.5))
-index<-which(testASE==min(testASE))
-points(index,testASE[index],col="red",pch=10)
-rss<-summary(reg_fwd)$rss
-lines(1:11,rss/7981,lty=3,col="blue")  
+# for (i in 1:11){
+#   predictions_testase<-predict.regsubsets(object=reg_fwd,newdata=dfTest_imputed1,id=i) 
+#   testASE[i]<-mean((log(dfTest_imputed1$MSRP[1:1004])-predictions_testase)^2)
+# }
+# par(mfrow=c(1,1))
+# plot(1:11,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE", ylim=c(0.03,0.5))
+# index<-which(testASE==min(testASE))
+# points(index,testASE[index],col="red",pch=10)
+# rss<-summary(reg_fwd)$rss
+# lines(1:11,rss/7981,lty=3,col="blue")  
 ```
 
 ```{r}
@@ -796,7 +796,8 @@ library(caret)
 # Define the training control
 fitControl <- trainControl(
     method = 'cv',                   # k-fold cross validation
-    number = 10,                      # number of folds
+    number = 10,
+    repeats = 5,
     savePredictions = 'final',       # saves predictions for optimal tuning parameter
 ) 
 rpart_fit = train(log(MSRP) ~ ., data=dfTraining_imputed1, "rpart", trControl = fitControl)
